@@ -1,18 +1,10 @@
-#include <stdlib.h>
-#include <time.h>
+#include <GL/gl.h>
 #include <windows.h>
-#include <gl/gl.h>
-
-#define LMAX 16
-#define CMAX 3
-#define V_MAIOR 3.0f
-#define V_MENOR 1.0f
+#include "matriz.h"
 
 LRESULT CALLBACK WindowProc(HWND, UINT, WPARAM, LPARAM);
 void EnableOpenGL(HWND hwnd, HDC*, HGLRC*);
 void DisableOpenGL(HWND, HDC, HGLRC);
-double** criar_matriz();
-void** liberar_matriz(void** m);
 
 int WINAPI WinMain(HINSTANCE hInstance,
                    HINSTANCE hPrevInstance,
@@ -77,25 +69,31 @@ int WINAPI WinMain(HINSTANCE hInstance,
         }
         else
         {
-            double **m = criar_matriz();
-            double escalaTela = 0.15f;
+            register int i;
+            // Matriz de cores
+            double** m = criar_matriz();
+            // Tamanho dos vertices
+            double** vertices = preencher_vertices();
+
+            // (2^n) indices, combinacoes para formar o diamante
+            int indices[8][3] = { {0, 2, 3}, {0, 3, 4}, {0, 4, 5},
+                                  {0, 5, 2}, {1, 3, 2}, {1, 4, 3},
+                                  {1, 5, 4}, {1, 2, 5} };
 
             glClearColor(0.5f, 0.5f, 0.5f, 0.5f);
             glClear(GL_COLOR_BUFFER_BIT);
 
             glPushMatrix();
-            glRotatef(theta, 0.0f, 1.0f, 0.0f);
-            glScaled(escalaTela, escalaTela, escalaTela);
+            glRotatef(theta, .0f, 1.0f, .0f);
+            glScaled(ESCALA_TELA, ESCALA_TELA, ESCALA_TELA);
 
+            glBegin(GL_TRIANGLES);
 
-            glBegin(GL_POLYGON);
-
-                glColor3d(m[0][0], m[0][1], m[0][2]);   glVertex2f(V_MENOR, V_MAIOR);
-                glColor3d(m[1][0], m[1][1], m[1][2]);   glVertex2f(V_MAIOR, V_MENOR);
-                glColor3d(m[2][0], m[2][1], m[2][2]);   glVertex2f(V_MAIOR, -V_MENOR);
-                glColor3d(m[3][0], m[3][1], m[3][2]);   glVertex2f(-V_MAIOR, -V_MAIOR);
-                glColor3d(m[4][0], m[4][1], m[4][2]);   glVertex2f(-V_MENOR, V_MAIOR);
-                glColor3d(m[5][0], m[5][1], m[5][2]);   glVertex2f(-V_MAIOR, V_MAIOR);
+            for(i = 0; i < 8; i++){
+                glColor3dv(m[0]);   glVertex3dv(vertices[indices[i][0]]);
+                glColor3dv(m[1]);   glVertex3dv(vertices[indices[i][1]]);
+                glColor3dv(m[2]);   glVertex3dv(vertices[indices[i][2]]);
+            }
 
             glEnd();
 
@@ -104,14 +102,13 @@ int WINAPI WinMain(HINSTANCE hInstance,
             SwapBuffers(hDC);
 
             theta += 1.0f;
-            Sleep (1);
+            Sleep (12);
 
-            m = (double**) liberar_matriz((void**)m);
+            vertices = (double**) liberar_matriz((void**) vertices, M_VERTICE);
+            m = (double**) liberar_matriz((void**) m, LMAX);
         }
     }
-
     DisableOpenGL(hwnd, hDC, hRC);
-
     DestroyWindow(hwnd);
 
     return msg.wParam;
@@ -152,10 +149,8 @@ void EnableOpenGL(HWND hwnd, HDC* hDC, HGLRC* hRC)
 
     int iFormat;
 
-    /* get the device context (DC) */
     *hDC = GetDC(hwnd);
 
-    /* set the pixel format for the DC */
     ZeroMemory(&pfd, sizeof(pfd));
 
     pfd.nSize = sizeof(pfd);
@@ -171,7 +166,6 @@ void EnableOpenGL(HWND hwnd, HDC* hDC, HGLRC* hRC)
 
     SetPixelFormat(*hDC, iFormat, &pfd);
 
-    /* create and enable the render context (RC) */
     *hRC = wglCreateContext(*hDC);
 
     wglMakeCurrent(*hDC, *hRC);
@@ -183,44 +177,3 @@ void DisableOpenGL (HWND hwnd, HDC hDC, HGLRC hRC)
     wglDeleteContext(hRC);
     ReleaseDC(hwnd, hDC);
 }
-
-double** criar_matriz()
-{
-    srand(time(NULL));
-    double **m = calloc(LMAX, sizeof(double*));
-    register int i;
-    register int j;
-    double cor = 0.0f;
-
-    for(i = 0; i < LMAX; i++)
-        m[i] = calloc(CMAX, sizeof(double));
-
-    for(i = 0; i < LMAX; i++){
-        for(j = 0; j < CMAX; j++){
-            cor = cor + 0.135f * (rand()%3);
-            m[i][j] = cor;
-            cor = cor + 0.27f * (rand()%3);
-            m[i][j] = cor;
-            cor = cor + 0.405f * (rand()%3);
-            m[i][j] = cor;
-            cor = 0.0f;
-        }
-    }
-
-    return m;
-}
-
-void** liberar_matriz(void** m)
-{
-    register int i;
-
-    for(i = 0; i < LMAX; i++){
-        free(m[i]);
-        m[i] = NULL;
-    }
-
-    free(m);
-
-    return NULL;
-}
-

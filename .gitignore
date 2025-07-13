@@ -1,4 +1,5 @@
-OGL.cbp
-OGL.depend
+ogl-display.cbp
+ogl-display.depend
+ogl-display.layout
 bin/
 obj/
